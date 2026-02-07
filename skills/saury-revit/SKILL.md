@@ -20,7 +20,7 @@ metadata:
 执行任何命令前，必须向用户确认以下信息：
 
 **必问：**
-1. **项目名称** — 必须是合法 C# 命名空间名（如 `Acme.WallTools`、`JD.RevitHelper`），默认 `RevitDemo`。该名称将用于解决方案、项目文件夹、命名空间、程序集、addin 文件、Ribbon 选项卡。
+1. **项目名称** — 必须是合法 C# 命名空间名（如 `Acme.WallTools`、`JD.RevitHelper`），默认 `RevitDemo` 或 `RevitTest`。该名称将用于解决方案、项目文件夹、命名空间、程序集、addin 文件、Ribbon 选项卡。
 2. **项目创建目录** — 默认当前工作目录。
 
 **可选（有默认值，仅需确认）：**
@@ -30,19 +30,34 @@ metadata:
 
 ### 第 2 步：检查并安装 .NET 环境
 
+**检测流程（按顺序执行）：**
+
+1. **检测 dotnet CLI 是否存在**：
+
 ```bash
-dotnet --version
+where dotnet
 ```
 
-- 需要 .NET SDK **8.0+**
-- 若已安装且版本满足 → 跳过，进入下一步
-- 若未安装或版本不足 → 自动安装：
+2. **若命令存在**，检测 SDK 版本：
+
+```bash
+dotnet --list-sdks
+```
+
+检查输出中是否包含 `8.0` 或更高版本的 SDK。
+
+3. **判断结果**：
+   - dotnet CLI 存在 且 SDK 8.0+ 已安装 → 跳过，进入下一步
+   - dotnet CLI 存在 但 无 SDK 或版本不足 → 需要安装 SDK
+   - dotnet CLI 不存在 → 需要完整安装
+
+**安装方式（按优先级尝试）：**
 
 ```bash
 winget install Microsoft.DotNet.SDK.8
 ```
 
-- 安装完成后重新验证：`dotnet --version`
+- 安装完成后重新验证：`where dotnet && dotnet --list-sdks`
 - 若 `winget` 不可用，改用官方脚本安装：
 
 ```powershell
