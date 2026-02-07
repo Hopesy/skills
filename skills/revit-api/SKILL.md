@@ -4,7 +4,7 @@ description: "Revit 2026 API 文档查询与参考。当用户询问 Revit API �
 license: MIT
 metadata:
   author: hopesy
-  version: "1.0.3"
+  version: "1.1.0"
 ---
 
 # Revit 2026 API 参考
@@ -13,7 +13,27 @@ metadata:
 
 ## 查询流程
 
-根据用户问题类型，按以下步骤选择对应的查询路径。
+### 第 0 步：需求预研（模糊问题必须执行）
+
+当用户提出的问题**不包含明确的类名、方法名或命名空间**时（如"实现 DMU"、"链接更新阶段"、"怎么监听模型变化"、"做一个参数化族"），必须先完成预研，再进入后续查询。
+
+**判断标准**：用户问题中是否包含可直接搜索的 Revit API 标识符（如 `IUpdater`、`DocumentChanged`、`FilteredElementCollector`）。如果没有，执行以下步骤：
+
+1. **解析业务意图**：将用户的模糊需求拆解为具体的技术概念。
+   - 示例："实现 DMU" → Dynamic Model Update 机制 → 需要 `IUpdater` 接口、`UpdaterRegistry` 类
+   - 示例："链接更新阶段" → Revit 链接文档的加载/更新事件 → 需要 `LinkedFileStatus`、`RevitLinkType`、`TransmissionData`
+
+2. **网络搜索验证**：使用 WebSearch 搜索 `Revit API + <技术概念>` 确认涉及的核心类和命名空间。
+   ```
+   搜索示例："Revit API Dynamic Model Update IUpdater"
+   搜索示例："Revit API linked file update phase event"
+   ```
+
+3. **提取关键词列表**：从搜索结果中提取 2-5 个具体的类名/接口名/方法名，作为后续查询的输入。
+
+4. **进入第 1 步**：带着明确的 API 标识符继续。
+
+> **重要**：禁止跳过预研直接凭经验回答模糊问题。即使你认为自己知道答案，也必须通过预研确认后再用本知识库验证。
 
 ### 第 1 步：判断问题类型
 
@@ -141,10 +161,10 @@ python scripts/search_api.py member "GetParameters"
 
 ## 禁止事项
 
-- 禁止在未经搜索验证的情况下猜测 API 名称或签名，必须通过脚本查询确认
+- 禁止对模糊问题跳过第 0 步预研，直接凭记忆回答 API 细节
+- 禁止在未经搜索验证的情况下猜测 API 名称或签名，必须通过预研 + 脚本查询确认
 - 禁止直接编辑 `data/` 目录下的 JSON 数据文件
 - 禁止向用户提供未在文档中出现的 API 用法，若文档不足应明确说明
-- 禁止跳过路径 A 的搜索步骤，直接凭记忆回答 API 细节问题
 - 禁止混淆不同 Revit 版本的 API，本文档仅覆盖 Revit 2026（v26.0.4.0）
 
 ## 注意事项
