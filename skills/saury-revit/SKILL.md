@@ -20,7 +20,7 @@ metadata:
 执行任何命令前，必须向用户确认以下信息：
 
 **必问：**
-1. **项目名称** — 必须是合法 C# 命名空间名（如 `Acme.WallTools`、`JD.RevitHelper`）。该名称将用于解决方案、项目文件夹、命名空间、程序集、addin 文件、Ribbon 选项卡。
+1. **项目名称** — 必须是合法 C# 命名空间名（如 `Acme.WallTools`、`JD.RevitHelper`），默认 `RevitDemo`。该名称将用于解决方案、项目文件夹、命名空间、程序集、addin 文件、Ribbon 选项卡。
 2. **项目创建目录** — 默认当前工作目录。
 
 **可选（有默认值，仅需确认）：**
@@ -28,14 +28,29 @@ metadata:
 
 用户确认后，汇总配置让用户做最终确认再执行。
 
-### 第 2 步：检查 .NET 环境
+### 第 2 步：检查并安装 .NET 环境
 
 ```bash
 dotnet --version
 ```
 
 - 需要 .NET SDK **8.0+**
-- 若未安装或版本不足，告知用户安装 [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)，停止后续步骤
+- 若已安装且版本满足 → 跳过，进入下一步
+- 若未安装或版本不足 → 自动安装：
+
+```bash
+winget install Microsoft.DotNet.SDK.8
+```
+
+- 安装完成后重新验证：`dotnet --version`
+- 若 `winget` 不可用，改用官方脚本安装：
+
+```powershell
+Invoke-WebRequest -Uri https://dot.net/v1/dotnet-install.ps1 -OutFile dotnet-install.ps1
+./dotnet-install.ps1 -Channel 8.0
+```
+
+- 若以上方式均失败，告知用户手动下载 [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
 
 ### 第 3 步：安装模板
 
@@ -105,15 +120,30 @@ dotnet build --configuration Debug_R26
 
 构建成功后，编译产物自动复制到 `C:\ProgramData\Autodesk\Revit\Addins\2026\`。
 
-### 第 7 步：引导后续定制
+### 第 7 步：告知用户如何使用
 
-构建成功后，提示用户可能需要定制的内容：
+构建成功后，向用户展示以下使用说明：
+
+#### 调试启动配置
+
+1. **修改 Revit 路径** — 打开 `<项目名称>.csproj`，找到 `StartProgram` 属性，确认路径指向本机 Revit 安装位置：
+
+```xml
+<StartProgram>C:\Program Files\Autodesk\Revit 2026\Revit.exe</StartProgram>
+```
+
+> 若 Revit 安装在非默认路径，需修改为实际路径。
+
+2. **用 Visual Studio 或 Rider 打开** `<项目名称>.slnx`
+3. **选择构建配置** `Debug_R26`（工具栏下拉框，**不要选** `Debug`）
+4. **点击启动/F5** — 自动编译 → 产物复制到 Addins 目录 → 启动 Revit → 附加调试器
+5. **Revit 启动后** — 在 Ribbon 选项卡中找到插件按钮，点击即可触发断点调试
+
+#### 后续定制
 
 1. **厂商信息**（`<项目名称>.addin`）— VendorId、VendorDescription、VendorEmail
 2. **关于页信息**（`Models/AboutInfo.cs`）— GiteeUrl、Description
 3. **添加新功能** — 参见 [architecture.md](references/architecture.md)
-
-告知用户项目已就绪，可用 Visual Studio 或 Rider 打开 `.slnx` 文件开始开发。
 
 ## 添加新功能
 
