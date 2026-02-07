@@ -37,6 +37,7 @@ npx skills remove
 | 技能 | 说明 |
 |---|---|
 | [saury-revit](skills/saury-revit/) | 基于 Saury.Revit.Template 创建 Revit 2026 插件项目（MVVM + DI 架构），支持交互式项目创建和功能扩展 |
+| [revit-api](skills/revit-api/) | Revit 2026 API 文档查询与参考，覆盖 30 个命名空间、2724 个类型，支持搜索、浏览和模式速查 |
 
 ## 目录结构
 
@@ -44,7 +45,9 @@ npx skills remove
 skills/
 └── <技能名>/
     ├── SKILL.md              # 技能定义（必需）
-    └── references/           # 参考文档（按需加载）
+    ├── references/           # 参考文档（按需加载）
+    ├── scripts/              # 辅助脚本（可选）
+    └── data/                 # 数据文件（可选）
 ```
 
 ## 创建新技能

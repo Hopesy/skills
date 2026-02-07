@@ -4,7 +4,7 @@ description: 基于 Saury.Revit.Template 创建 Revit 插件项目。当用户�
 license: MIT
 metadata:
   author: hopesy
-  version: "1.0.1"
+  version: "1.0.3"
 ---
 
 # Saury Revit 项目创建器

@@ -4,7 +4,7 @@ description: "Revit 2026 API 文档查询与参考。当用户询问 Revit API �
 license: MIT
 metadata:
   author: hopesy
-  version: "1.0.0"
+  version: "1.0.3"
 ---
 
 # Revit 2026 API 参考
@@ -13,54 +13,82 @@ metadata:
 
 ## 查询流程
 
-根据用户问题类型，选择对应的查询路径：
+根据用户问题类型，按以下步骤选择对应的查询路径。
 
-### 路径 A：搜索特定 API（最常用）
+### 第 1 步：判断问题类型
 
-用户问"XX 类怎么用"、"如何实现 XX 功能"、"XX 方法的参数"时：
+| 问题类型 | 示例 | 执行路径 |
+|----------|------|----------|
+| 查询特定 API | "XX 类怎么用"、"XX 方法的参数" | 路径 A |
+| 浏览命名空间 | "XX 命名空间有什么"、"XX 模块的类" | 路径 B |
+| 查找成员归属 | "哪个类有 XX 方法"、"XX 属性在哪里" | 路径 C |
+| 通用开发问题 | "怎么创建墙"、"事务怎么用" | 路径 D |
+
+### 第 2 步：执行对应路径
+
+#### 路径 A：搜索特定 API（最常用）
+
+1. 先搜索定位：
 
 ```bash
-# 1. 先搜索定位
 python scripts/search_api.py search "关键词"
+```
 
-# 2. 查看类的成员概览
+2. 查看类的成员概览：
+
+```bash
 python scripts/search_api.py class "Autodesk.Revit.DB.ClassName"
+```
 
-# 3. 需要完整文档时（签名、Remarks、继承链）
+3. 需要完整文档时（签名、Remarks、继承链）：
+
+```bash
 python scripts/extract_page.py --type "Autodesk.Revit.DB.ClassName"
+```
 
-# 4. 查看成员级详情（属性/方法签名）
+4. 查看成员级详情（属性/方法签名）：
+
+```bash
 python scripts/extract_page.py --id "P:Autodesk.Revit.DB.Wall.Flipped"
 python scripts/extract_page.py --id "M:Autodesk.Revit.DB.Wall.Flip"
 ```
 
-### 路径 B：浏览命名空间
+#### 路径 B：浏览命名空间
 
-用户问"XX 命名空间有什么"、"XX 模块的类"时：
+1. 列出所有命名空间：
 
 ```bash
-# 列出所有命名空间
 python scripts/search_api.py namespaces
+```
 
-# 查看特定命名空间的类型列表
+2. 查看特定命名空间的类型列表：
+
+```bash
 python scripts/search_api.py namespace "Autodesk.Revit.DB"
 ```
 
-或直接读取 [references/namespace-overview.md](references/namespace-overview.md)。
+3. 或直接读取 [references/namespace-overview.md](references/namespace-overview.md) 获取完整导航。
 
-### 路径 C：查找成员
+#### 路径 C：查找成员归属
 
-用户问"哪个类有 XX 方法"、"XX 属性在哪里"时：
+1. 跨类搜索成员名称：
 
 ```bash
 python scripts/search_api.py member "GetParameters"
 ```
 
-### 路径 D：开发模式速查
+2. 从结果中定位目标类后，按路径 A 的第 2-4 步获取详情。
 
-用户问"怎么创建墙"、"事务怎么用"、"如何查询元素"等通用开发问题时：
+#### 路径 D：开发模式速查
 
-直接读取 [references/core-patterns.md](references/core-patterns.md)，包含 11 个核心模式的 C# 代码示例。
+1. 直接读取 [references/core-patterns.md](references/core-patterns.md)，包含 11 个核心模式的 C# 代码示例。
+2. 若需进一步查看模式中涉及的 API 细节，按路径 A 继续查询。
+
+### 第 3 步：组织回答
+
+1. 优先展示与用户问题直接相关的 API 签名和用法。
+2. 附带简要的代码示例（参考 core-patterns.md 中的模式）。
+3. 如有相关联的类或方法，补充提示。
 
 ## 核心类速查
 
@@ -110,6 +138,14 @@ python scripts/search_api.py member "GetParameters"
 - `DB.DirectContext3D` — 自定义 3D 渲染
 - `DB.Visual` — 材质与渲染外观
 - `Autodesk.Revit.Exceptions` — 异常类型
+
+## 禁止事项
+
+- 禁止在未经搜索验证的情况下猜测 API 名称或签名，必须通过脚本查询确认
+- 禁止直接编辑 `data/` 目录下的 JSON 数据文件
+- 禁止向用户提供未在文档中出现的 API 用法，若文档不足应明确说明
+- 禁止跳过路径 A 的搜索步骤，直接凭记忆回答 API 细节问题
+- 禁止混淆不同 Revit 版本的 API，本文档仅覆盖 Revit 2026（v26.0.4.0）
 
 ## 注意事项
 
