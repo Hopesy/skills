@@ -4,7 +4,7 @@ description: "Revit 2026 API 文档查询与参考。当用户询问 Revit API �
 license: MIT
 metadata:
   author: hopesy
-  version: "1.1.0"
+  version: "1.1.1"
 ---
 
 # Revit 2026 API 参考
@@ -71,6 +71,15 @@ python scripts/extract_page.py --type "Autodesk.Revit.DB.ClassName"
 ```bash
 python scripts/extract_page.py --id "P:Autodesk.Revit.DB.Wall.Flipped"
 python scripts/extract_page.py --id "M:Autodesk.Revit.DB.Wall.Flip"
+python scripts/extract_page.py --id "M:Autodesk.Revit.DB.FilteredElementCollector.#ctor(Autodesk.Revit.DB.Document)"
+python scripts/extract_page.py --id "Overload:Autodesk.Revit.DB.FilteredElementCollector.#ctor"
+```
+
+5. 当 `member` 命令返回空结果时，优先检查是否把“类型名”当成了“成员名”：
+
+```bash
+python scripts/search_api.py member "FilteredElementCollector"  # 会提示改用 class/search
+python scripts/search_api.py class "Autodesk.Revit.DB.FilteredElementCollector"
 ```
 
 #### 路径 B：浏览命名空间
@@ -174,3 +183,10 @@ python scripts/search_api.py member "GetParameters"
 - 数据已预提取为按命名空间的 JSON 文件（`data/pages/*.json`），无需原始 HTML
 - 索引文件 `data/api_index.json` 由 `build_index.py` 生成
 - `extract_page.py` 支持 `--id` 参数直接查询成员级文档（前缀：T=类型, P=属性, M=方法, E=事件）
+
+## 脚本增强（v1.1.1）
+
+- `extract_page.py` 支持 `Overload:` 前缀，能自动展开到一个可渲染重载并列出全部重载 ID。
+- 当 `_lookup` 缺失或不完整时，`extract_page.py` 会尝试从 Help ID 推断命名空间并直查 `data/pages/<namespace>.json`。
+- `extract_page.py` 查询失败时会输出同命名空间的候选 ID，便于快速修正拼写/参数签名。
+- `search_api.py member` 在无成员命中时，会提示可能的类型候选和替代命令（`class`/`search`）。

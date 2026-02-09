@@ -20,6 +20,35 @@ INDEX_PATH = SKILL_DIR / "data" / "api_index.json"
 MAX_RESULTS = 20
 
 
+def find_type_candidates(index, keyword, limit=8):
+    """按类型名/全限定名给出候选类型"""
+    kw = keyword.lower().strip()
+    if not kw:
+        return []
+
+    matches = []
+    for fqn, info in index["types"].items():
+        name = info.get("name", "")
+        name_lower = name.lower()
+        fqn_lower = fqn.lower()
+
+        score = 0
+        if kw == name_lower:
+            score = 100
+        elif kw == fqn_lower:
+            score = 95
+        elif kw in name_lower:
+            score = 80
+        elif kw in fqn_lower:
+            score = 60
+
+        if score:
+            matches.append((score, fqn, info))
+
+    matches.sort(key=lambda x: (-x[0], x[1]))
+    return matches[:limit]
+
+
 def load_index():
     if not INDEX_PATH.exists():
         print(f"错误: 索引文件不存在: {INDEX_PATH}")
@@ -234,6 +263,13 @@ def cmd_member(index, member_name):
 
     if not results:
         print(f"未找到成员: \"{member_name}\"")
+        candidates = find_type_candidates(index, member_name)
+        if candidates:
+            print("\n你输入的内容更像是类型名，可能要用以下命令：")
+            for _, fqn, _ in candidates[:5]:
+                print(f"  - python search_api.py class \"{fqn}\"")
+            print("\n或：")
+            print(f"  - python search_api.py search \"{member_name}\"")
         return
 
     results = results[:MAX_RESULTS]

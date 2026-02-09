@@ -8,6 +8,7 @@ extract_page.py - 从 RevitAPI 预提取的 JSON 数据中获取格式化 Markdo
 """
 
 import argparse
+import difflib
 import json
 import sys
 from pathlib import Path
@@ -27,15 +28,105 @@ def load_lookup():
         return json.load(f)
 
 
-def load_page(ns: str, help_id: str) -> dict | None:
-    """从命名空间 JSON 文件加载单个页面"""
+_PAGES_CACHE: dict[str, dict] = {}
+
+
+def load_namespace_pages(ns: str) -> dict:
+    """加载命名空间下的所有页面（带缓存）"""
+    if ns in _PAGES_CACHE:
+        return _PAGES_CACHE[ns]
+
     safe_name = ns.replace("::", ".") if ns else "_orphan"
     ns_path = PAGES_DIR / f"{safe_name}.json"
     if not ns_path.exists():
-        return None
+        _PAGES_CACHE[ns] = {}
+        return _PAGES_CACHE[ns]
+
     with open(ns_path, "r", encoding="utf-8") as f:
-        pages = json.load(f)
+        _PAGES_CACHE[ns] = json.load(f)
+
+    return _PAGES_CACHE[ns]
+
+
+def load_page(ns: str, help_id: str) -> dict | None:
+    """从命名空间 JSON 文件加载单个页面"""
+    pages = load_namespace_pages(ns)
     return pages.get(help_id)
+
+
+def normalize_help_id(raw_help_id: str) -> str:
+    """规范化 Help ID 输入"""
+    help_id = raw_help_id.strip()
+
+    # 用户可能直接传类型全名
+    if ":" not in help_id and "." in help_id and not help_id.startswith("Overload:"):
+        return f"T:{help_id}"
+
+    return help_id
+
+
+def infer_namespace_from_help_id(help_id: str) -> str | None:
+    """在 lookup 缺失时，从 Help ID 推断命名空间"""
+    if not help_id:
+        return None
+
+    if help_id.startswith("N:"):
+        return help_id[2:]
+
+    if help_id.startswith("Overload:"):
+        body = help_id[len("Overload:"):]
+    elif ":" in help_id:
+        _, body = help_id.split(":", 1)
+    else:
+        body = help_id
+
+    body = body.split("(", 1)[0]
+
+    # 成员级 ID：先去掉成员名，得到类型全名
+    if body.count(".") >= 2 and not help_id.startswith("T:"):
+        type_fqn = body.rsplit(".", 1)[0]
+    else:
+        type_fqn = body
+
+    if "." not in type_fqn:
+        return None
+
+    return type_fqn.rsplit(".", 1)[0]
+
+
+def list_ns_candidates(ns: str, target: str, limit: int = 8) -> list[str]:
+    """在同命名空间内给出候选 Help ID"""
+    pages = load_namespace_pages(ns)
+    if not pages:
+        return []
+
+    keys = list(pages.keys())
+    # 先做包含匹配，再做相似匹配
+    contains = [k for k in keys if target.lower() in k.lower()]
+    if contains:
+        return contains[:limit]
+
+    return difflib.get_close_matches(target, keys, n=limit, cutoff=0.45)
+
+
+def resolve_overload_help_id(help_id: str, ns: str) -> tuple[str | None, list[str]]:
+    """解析 Overload: 前缀，返回命中的具体方法 ID"""
+    if not help_id.startswith("Overload:"):
+        return None, []
+
+    root = help_id[len("Overload:"):]
+    root = root[2:] if root.startswith("M:") else root
+    pages = load_namespace_pages(ns)
+    if not pages:
+        return None, []
+
+    matches = [k for k in pages.keys() if k.startswith(f"M:{root}(")]
+    matches.sort()
+    if not matches:
+        return None, []
+
+    # 返回首个可渲染页面，同时把全部重载都返回给调用方提示
+    return matches[0], matches
 
 
 def format_page(data: dict) -> str:
@@ -141,6 +232,57 @@ def resolve_type_to_help_id(type_name: str) -> str | None:
     return None
 
 
+def resolve_help_id(help_id: str, lookup: dict[str, str]) -> tuple[str | None, str | None, list[str], str | None]:
+    """
+    解析 Help ID，返回:
+    - resolved_help_id
+    - namespace
+    - overload_candidates
+    - warning_message
+    """
+    normalized = normalize_help_id(help_id)
+
+    # Overload 优先展开到具体方法签名
+    if normalized.startswith("Overload:"):
+        ns = infer_namespace_from_help_id(normalized)
+        if ns:
+            resolved_overload, overloads = resolve_overload_help_id(normalized, ns)
+            if resolved_overload:
+                warning = (
+                    f"提示: 检测到 Overload，已自动解析到 `{resolved_overload}`；"
+                    f"共 {len(overloads)} 个重载。"
+                )
+                return resolved_overload, ns, overloads, warning
+
+            pages = load_namespace_pages(ns)
+            if normalized in pages:
+                warning = "提示: 未找到具体重载，已回退到 Overload 总览页。"
+                return normalized, ns, [], warning
+
+    # 1) 直接命中 lookup
+    ns = lookup.get(normalized)
+    if ns:
+        return normalized, ns, [], None
+
+    # 2) lookup 缺失时，尝试从 ID 推断命名空间并在页面文件中直查
+    ns = infer_namespace_from_help_id(normalized)
+    if ns:
+        pages = load_namespace_pages(ns)
+        if normalized in pages:
+            return normalized, ns, [], None
+
+        # 3) 支持 Overload: 前缀（兼容无 lookup 的场景）
+        resolved_overload, overloads = resolve_overload_help_id(normalized, ns)
+        if resolved_overload:
+            warning = (
+                f"提示: 检测到 Overload，已自动解析到 `{resolved_overload}`；"
+                f"共 {len(overloads)} 个重载。"
+            )
+            return resolved_overload, ns, overloads, warning
+
+    return None, ns, [], None
+
+
 def main():
     parser = argparse.ArgumentParser(description="从预提取 JSON 获取 API 文档")
     group = parser.add_mutually_exclusive_group(required=True)
@@ -156,18 +298,37 @@ def main():
             print(f"错误: 未找到类型 \"{args.type}\"")
             sys.exit(1)
     else:
-        help_id = args.id
+        help_id = normalize_help_id(args.id)
 
-    ns = lookup.get(help_id)
-    if not ns:
-        print(f"错误: Help ID \"{help_id}\" 未在查找表中")
-        print("可用前缀: T:(类型) P:(属性) M:(方法) E:(事件) F:(字段) N:(命名空间)")
+    resolved_help_id, ns, overload_candidates, warning = resolve_help_id(help_id, lookup)
+    if not resolved_help_id or not ns:
+        print(f"错误: Help ID \"{help_id}\" 未找到")
+        print("可用前缀: T:(类型) P:(属性) M:(方法) E:(事件) F:(字段) N:(命名空间) Overload:(重载)")
+
+        inferred_ns = infer_namespace_from_help_id(help_id)
+        if inferred_ns:
+            candidates = list_ns_candidates(inferred_ns, help_id)
+            if candidates:
+                print("\n可能的候选 ID:")
+                for item in candidates[:8]:
+                    print(f"  - {item}")
         sys.exit(1)
 
-    data = load_page(ns, help_id)
+    data = load_page(ns, resolved_help_id)
     if not data:
-        print(f"错误: 未找到页面数据 (ns={ns}, id={help_id})")
+        print(f"错误: 未找到页面数据 (ns={ns}, id={resolved_help_id})")
         sys.exit(1)
+
+    if warning:
+        print(warning)
+        print()
+
+    if overload_candidates:
+        print("## 可用重载")
+        print()
+        for item in overload_candidates:
+            print(f"- `{item}`")
+        print()
 
     print(format_page(data))
 
