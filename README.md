@@ -38,6 +38,7 @@ npx skills remove
 |---|---|
 | [saury-revit](skills/saury-revit/) | 基于 Saury.Revit.Template 创建 Revit 2026 插件项目（MVVM + DI 架构），支持交互式项目创建和功能扩展 |
 | [revit-api](skills/revit-api/) | Revit 2026 API 文档查询与参考，覆盖 30 个命名空间、2724 个类型，支持搜索、浏览和模式速查 |
+| [pdf-patch](skills/pdf-patch/) | 扫描版或图片型 PDF 的局部文字修补，支持单字/短语替换、字体匹配、像素定位和渲染验证 |
 
 ## 目录结构
 

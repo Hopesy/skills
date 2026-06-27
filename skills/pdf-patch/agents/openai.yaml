@@ -1,0 +1,4 @@
+interface:
+  display_name: "PDF Patch"
+  short_description: "Repair text in scanned PDF pages"
+  default_prompt: "Use $pdf-patch to replace a word or short phrase in a scanned PDF while preserving the original page appearance."
