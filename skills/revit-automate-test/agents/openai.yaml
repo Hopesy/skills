@@ -1,0 +1,4 @@
+interface:
+  display_name: "Revit Automate Test"
+  short_description: "Run Revit plugin smoke, WPF UIA, and E2E tests"
+  default_prompt: "Use $revit-automate-test to analyze a Revit plugin feature, design an automation path, then execute it with deployment evidence, assembly-load, Journal/plugin-log checks, WPF UI Automation, and Revit model-view clicks."

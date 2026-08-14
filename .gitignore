@@ -1,0 +1,6 @@
+# local-only credentials (see skills/typos-publish/config.example.json)
+skills/typos-publish/config.json
+
+# python bytecode cache
+__pycache__/
+*.pyc
